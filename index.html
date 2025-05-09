@@ -15,6 +15,11 @@
       padding: 15px;
       border-radius: 10px;
     }
+    .guildSpe {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-gap: 15px;
+    }
     .guild {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -89,9 +94,18 @@
 </head>
 <body>
   <div id="app">
+    <h2>选择模式</h2>
+    <div class="bgc">
+      <select v-model="activeMode">
+        <option v-for="item in modeType" :value="item.value">{{ item.name }}</option>
+      </select>
+    </div>
     <h2>第一步</h2>
-    <div class="guild bgc">
-      <input v-for="item in guildNames" type="text" v-model="item.label" :placeholder="item.label">
+    <div v-if="guildNameMap[activeMode].length === 4" class="guild bgc">
+      <input v-for="item in guildNameMap[activeMode]" type="text" v-model="item.label" :placeholder="item.label">
+    </div>
+    <div v-else class="guildSpe bgc">
+      <input v-for="item in guildNameMap[activeMode]" type="text" v-model="item.label" :placeholder="item.label">
     </div>
     <h2>第二步</h2>
     <div class="bgc">
@@ -107,7 +121,7 @@
       <div class="fw-700 pd-5 mr-5">公会</div>
       <div class="fw-700 pd-5 mr-5">{{ times | toLabel(haveTimes, 2) }}</div>
       <div class="fw-700 pd-5 mr-5">{{ times | toLabel(haveTimes, 1) }}</div>
-      <template v-for="(item, idx) in guildNames">
+      <template v-for="(item, idx) in guildNameMap[activeMode]">
         <div class="pd-5 mr-5">{{ item.label }}：{{ item.secondScore - item.firstScore }}</div>
         <input v-model="item.firstScore" type="text" class="pd-5 mr-5" placeholder="请输入">
         <input v-model="item.secondScore" type="text" class="pd-5 mr-5" placeholder="请输入">
@@ -120,7 +134,7 @@
         <div v-for="item in haveTimes" class="fw-700 pd-5 mr-5 fs-12">{{ item.name }}</div>
       </div>
       <div>
-        <div v-for="guildItem in guildNames" class="bank">
+        <div v-for="guildItem in guildNameMap[activeMode]" class="bank">
           <div>{{ guildItem.label }}</div>
           <input v-for="item in haveTimes" type="checkbox" :name="item.value" :value="item.value" @change="handleChange($event, guildItem, item.value)" />
         </div>
@@ -131,9 +145,9 @@
       <button style="background-color: cadetblue; color: #fff;" @click="handleCalc">计算</button>
       <h3>平均分：{{ averageScore }}</h3>
       <div v-if="averageScore">
-        <div v-for="guildItem in guildNames" style="margin-bottom: 15px;">
+        <div v-for="guildItem in guildNameMap[activeMode]" style="margin-bottom: 15px;">
           {{ guildItem.label }}：{{ computedScore(guildItem, bankSelect, times, averageScore) }}
-          <div>(a=沙地, b=枯木/石头) {{ JSON.stringify(solveLinearDiophantine(208, 272, Math.abs(computedScore(guildItem, bankSelect, times, averageScore)))).slice(1, -1).replaceAll('[', '(').replaceAll(']', ')') }}</div>
+          <div>(a=沙地, b=枯木/石头) {{ JSON.stringify(solveLinearDiophantine(Math.abs(computedScore(guildItem, bankSelect, times, averageScore)), modeTypeMap[activeMode].shadi, modeTypeMap[activeMode].stone)).slice(1, -1).replaceAll('[', '(').replaceAll(']', ')') }}</div>
         </div>
       </div>
     </div>
@@ -148,21 +162,59 @@
       el: '#app',
       data: {
         averageScore: '',
+        activeMode: 'diamond', // 默认钻石
         bankSelect: {
           guild1: [],
           guild2: [],
           guild3: [],
           guild4: []
         },
-        times: 10, // 次数
-        guildNames: [
-          { label: '兄弟盟', prop: 'guild1', firstScore: 277336, secondScore: 310104 },
-          { label: '傲世', prop: 'guild2', firstScore: 286872-3680, secondScore: 316280 },
-          { label: '神龙', prop: 'guild3', firstScore: 281848+3680, secondScore: 322872 },
-          { label: '自嗨团', prop: 'guild4', firstScore: 285400, secondScore: 318360 },
-        ],
+        times: 4, // 次数
+        guildNameMap: {
+          diamond: [
+            { label: '兄弟盟', prop: 'guild1', firstScore: 446184, secondScore: 479368 },
+            { label: '傲世', prop: 'guild2', firstScore: 454408, secondScore: 488328 },
+            { label: '神龙', prop: 'guild3', firstScore: 458024, secondScore: 490856 },
+            { label: '自嗨团', prop: 'guild4', firstScore: 454264, secondScore: 491112 }
+            // { label: '兄弟盟', prop: 'guild1', firstScore: 479368+33184, secondScore: 479368+33184+33184 },
+            // { label: '傲世', prop: 'guild2', firstScore: 488328+33920, secondScore: 488328+33920+208+33920 },
+            // { label: '神龙', prop: 'guild3', firstScore: 490856+32832, secondScore: 490856+32832+32832 },
+            // { label: '自嗨团', prop: 'guild4', firstScore: 491112+36848, secondScore: 491112+36848+36848 }
+            // { label: '兄弟盟', prop: 'guild1', firstScore: 446184+33184, secondScore: 479368+33184 },
+            // { label: '傲世', prop: 'guild2', firstScore: 454408+33920, secondScore: 488328+33920+208 },
+            // { label: '神龙', prop: 'guild3', firstScore: 458024+32832, secondScore: 490856+32832 },
+            // { label: '自嗨团', prop: 'guild4', firstScore: 454264+36848, secondScore: 491112+36848 }
+          ],
+          king: [
+            { label: '兄弟盟', prop: 'guild1', firstScore: 277336, secondScore: 310104 },
+            { label: '傲世', prop: 'guild2', firstScore: 286872-3680, secondScore: 316280 },
+            { label: '神龙', prop: 'guild3', firstScore: 281848+3680, secondScore: 322872 },
+            { label: '自嗨团', prop: 'guild4', firstScore: 285400, secondScore: 318360 }
+          ],
+          gold: [
+            { label: '兄弟盟', prop: 'guild1', firstScore: 277336, secondScore: 310104 },
+            { label: '傲世', prop: 'guild2', firstScore: 286872-3680, secondScore: 316280 },
+            { label: '神龙', prop: 'guild3', firstScore: 281848+3680, secondScore: 322872 },
+            { label: '自嗨团', prop: 'guild4', firstScore: 285400, secondScore: 318360 },
+            { label: 'A', prop: 'guild4', firstScore: 285400, secondScore: 318360 },
+            { label: 'B', prop: 'guild4', firstScore: 285400, secondScore: 318360 }
+          ]
+        },
       },
       computed: {
+        modeType () {
+          return [
+            { value: 'diamond', name: '钻石', bankScore: 3680, shadi: 208, stone: 272 },
+            { value: 'king', name: '王者', bankScore: 3680, shadi: 208, stone: 272 },
+            { value: 'gold', name: '黄金', bankScore: 3680, shadi: 208, stone: 272 }
+          ]
+        },
+        modeTypeMap () {
+          return this.modeType.reduce((acc, cur) => {
+            acc[cur.value] = cur
+            return acc
+          }, {})
+        },
         haveTimes () {
           return [
             { value: 14, name: '星期一R1', hide: true },
@@ -194,7 +246,7 @@
            const targetArr = bankSelect[value.prop].map(val => val.value)
            const isHad = targetArr.includes(times + 1) // 当前公会是否占领
            const haveTimes = new Array(times).fill(0).filter((_, idx) => targetArr.includes(idx + 1)).length
-           return averageScore - value.secondScore - (targetScore - (isHad ? bankScore : 0)) * times - bankScore * haveTimes
+           return averageScore - value.secondScore - (targetScore - (isHad ? this.modeTypeMap[this.activeMode].bankScore : 0)) * times - this.modeTypeMap[this.activeMode].bankScore * haveTimes
         },
         handleChange (evt, item, value) {
           // 判断下当前的value值是否存在于bankSelect中，如果存在就删除，不存在就添加
@@ -217,10 +269,10 @@
           const [firstArr2, secondArr2, hadBankTimes2, haveBankTimes2] = arr2 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
           const [firstArr3, secondArr3, hadBankTimes3, haveBankTimes3] = arr3 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
           const [firstArr4, secondArr4, hadBankTimes4, haveBankTimes4] = arr4 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
-          const finaScoreTotal1 = secondArr1 + (secondArr1 - firstArr1 - bankScore * hadBankTimes1) * times + bankScore * haveBankTimes1
-          const finaScoreTotal2 = secondArr2 + (secondArr2 - firstArr2 - bankScore * hadBankTimes2) * times + bankScore * haveBankTimes2
-          const finaScoreTotal3 = secondArr3 + (secondArr3 - firstArr3 - bankScore * hadBankTimes3) * times + bankScore * haveBankTimes3
-          const finaScoreTotal4 = secondArr4 + (secondArr4 - firstArr4 - bankScore * hadBankTimes4) * times + bankScore * haveBankTimes4
+          const finaScoreTotal1 = secondArr1 + (secondArr1 - firstArr1 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes1) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes1
+          const finaScoreTotal2 = secondArr2 + (secondArr2 - firstArr2 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes2) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes2
+          const finaScoreTotal3 = secondArr3 + (secondArr3 - firstArr3 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes3) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes3
+          const finaScoreTotal4 = secondArr4 + (secondArr4 - firstArr4 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes4) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes4
           const totalScore = finaScoreTotal1 + finaScoreTotal2 + finaScoreTotal3 + finaScoreTotal4
           const isAverage = totalScore % 4 === 0
           if (isAverage) {
@@ -230,7 +282,7 @@
         },
         handleCalc () {
           const { guild1, guild2, guild3, guild4 } = this.bankSelect
-          const guildNameMap = this.guildNames.reduce((acc, cur) => {
+          const guildNameMap = this.guildNameMap[this.activeMode].reduce((acc, cur) => {
             acc[cur.prop] = cur
             return acc
           }, {})
@@ -242,7 +294,7 @@
             [guildNameMap.guild2.firstScore, guildNameMap.guild2.secondScore, guild2Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild2Arr.includes(idx + 1)).length],
             [guildNameMap.guild3.firstScore, guildNameMap.guild3.secondScore, guild3Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild3Arr.includes(idx + 1)).length],
             [guildNameMap.guild4.firstScore, guildNameMap.guild4.secondScore, guild4Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild4Arr.includes(idx + 1)).length],
-            3680,
+            this.modeTypeMap[this.activeMode].bankScore,
             this.times]
           const isAverage = this.calcScore( ...parmas )
           if (isAverage) {
@@ -251,53 +303,50 @@
             this.averageScore = '不能平局，请重新调整分数'
           }
         },
-        solveLinearDiophantine(A, B, C) {
-          // 1. 计算最大公约数
-          function gcd(x, y) {
-            return y === 0 ? x : gcd(y, x % y);
-          }
-          // 2. 扩展欧几里得算法
-          function extendedGcd(x, y) {
-            if (y === 0) return { gcd: x, x: 1, y: 0 };
-            const result = extendedGcd(y, x % y);
-            return {
-              gcd: result.gcd,
-              x: result.y,
-              y: result.x - Math.floor(x / y) * result.y
-            };
-          }
-          const d = gcd(A, B);
-
-          // 3. 检查是否有解
-          if (C % d !== 0) {
-            return []; // 无解
+        solveLinearDiophantine(C, ...coefficients) {
+          // 1. 计算所有系数的最大公约数
+          function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
           }
 
-          // 4. 求特解
-          const extended = extendedGcd(A, B);
-          const k = C / d;
-          let a0 = extended.x * k;
-          let b0 = extended.y * k;
+          let currentGcd = coefficients[0];
+          for (let i = 1; i < coefficients.length; i++) {
+            currentGcd = gcd(currentGcd, coefficients[i]);
+            if (currentGcd === 1) break; // gcd为1时可以直接终止
+          }
 
-          // 5. 求通解
-          const tA = B / d;
-          const tB = A / d;
+          // 2. 检查是否有解
+          if (C % currentGcd !== 0) {
+            return ['无解']; // 无解
+          }
 
-          // 6. 寻找所有非负整数解
-          const solutions = [];
+          // 3. 递归求解函数
+          function findSolutions(target, remainingCoeffs, currentSolution, solutions) {
+            if (remainingCoeffs.length === 0) {
+              if (target === 0) {
+                solutions.push([...currentSolution]);
+              }
+              return;
+            }
 
-          // 计算t的范围
-          const tMin = Math.ceil((-a0) / tA);
-          const tMax = Math.floor(b0 / tB);
+            const currentCoeff = remainingCoeffs[0];
+            const newRemainingCoeffs = remainingCoeffs.slice(1);
 
-          for (let t = tMin; t <= tMax; t++) {
-            const a = a0 + tA * t;
-            const b = b0 - tB * t;
-            if (a >= 0 && b >= 0) {
-              solutions.push([a, b]);
+            // 计算当前变量的可能最大值
+            const maxValue = Math.floor(target / currentCoeff);
+
+            for (let i = 0; i <= maxValue; i++) {
+              currentSolution.push(i);
+              findSolutions(target - i * currentCoeff, newRemainingCoeffs, currentSolution, solutions);
+              currentSolution.pop();
             }
           }
-          return solutions;
+
+          // 4. 寻找所有解
+          const allSolutions = [];
+          findSolutions(C, coefficients, [], allSolutions);
+
+          return allSolutions;
         }
       }
     })
