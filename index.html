@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>计算器</title>
-  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+  <script src="./vue.js"></script>
   <style>
     body {
       width: 1000px;
@@ -153,9 +153,27 @@
     </div>
   </div>
   <script>
-    function gcd (a, b) { // 求最大公约数
-      if (b === 0) return a
-      return gcd(b, a % b)
+    const config = {
+      diamond: [
+        { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
+        { label: 'B', prop: 'guild2', firstScore: '', secondScore: '' },
+        { label: 'C', prop: 'guild3', firstScore: '', secondScore: '' },
+        { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' }
+      ],
+      king: [
+        { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
+        { label: 'B', prop: 'guild2', firstScore: '', secondScore: '' },
+        { label: 'C', prop: 'guild3', firstScore: '', secondScore: '' },
+        { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' }
+      ],
+      gold: [
+        { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
+        { label: 'B', prop: 'guild2', firstScore: '', secondScore: '' },
+        { label: 'C', prop: 'guild3', firstScore: '', secondScore: '' },
+        { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' },
+        { label: 'E', prop: 'guild5', firstScore: '', secondScore: '' },
+        { label: 'F', prop: 'guild6', firstScore: '', secondScore: '' }
+      ]
     }
     const bankScore = 3680 // 银行分数
     var targetVue = new Vue({
@@ -163,50 +181,16 @@
       data: {
         averageScore: '',
         activeMode: 'diamond', // 默认钻石
-        bankSelect: {
-          guild1: [],
-          guild2: [],
-          guild3: [],
-          guild4: []
-        },
-        times: 4, // 次数
-        guildNameMap: {
-          diamond: [
-            { label: '兄弟盟', prop: 'guild1', firstScore: 446184, secondScore: 479368 },
-            { label: '傲世', prop: 'guild2', firstScore: 454408, secondScore: 488328 },
-            { label: '神龙', prop: 'guild3', firstScore: 458024, secondScore: 490856 },
-            { label: '自嗨团', prop: 'guild4', firstScore: 454264, secondScore: 491112 }
-            // { label: '兄弟盟', prop: 'guild1', firstScore: 479368+33184, secondScore: 479368+33184+33184 },
-            // { label: '傲世', prop: 'guild2', firstScore: 488328+33920, secondScore: 488328+33920+208+33920 },
-            // { label: '神龙', prop: 'guild3', firstScore: 490856+32832, secondScore: 490856+32832+32832 },
-            // { label: '自嗨团', prop: 'guild4', firstScore: 491112+36848, secondScore: 491112+36848+36848 }
-            // { label: '兄弟盟', prop: 'guild1', firstScore: 446184+33184, secondScore: 479368+33184 },
-            // { label: '傲世', prop: 'guild2', firstScore: 454408+33920, secondScore: 488328+33920+208 },
-            // { label: '神龙', prop: 'guild3', firstScore: 458024+32832, secondScore: 490856+32832 },
-            // { label: '自嗨团', prop: 'guild4', firstScore: 454264+36848, secondScore: 491112+36848 }
-          ],
-          king: [
-            { label: '兄弟盟', prop: 'guild1', firstScore: 277336, secondScore: 310104 },
-            { label: '傲世', prop: 'guild2', firstScore: 286872-3680, secondScore: 316280 },
-            { label: '神龙', prop: 'guild3', firstScore: 281848+3680, secondScore: 322872 },
-            { label: '自嗨团', prop: 'guild4', firstScore: 285400, secondScore: 318360 }
-          ],
-          gold: [
-            { label: '兄弟盟', prop: 'guild1', firstScore: 277336, secondScore: 310104 },
-            { label: '傲世', prop: 'guild2', firstScore: 286872-3680, secondScore: 316280 },
-            { label: '神龙', prop: 'guild3', firstScore: 281848+3680, secondScore: 322872 },
-            { label: '自嗨团', prop: 'guild4', firstScore: 285400, secondScore: 318360 },
-            { label: 'A', prop: 'guild4', firstScore: 285400, secondScore: 318360 },
-            { label: 'B', prop: 'guild4', firstScore: 285400, secondScore: 318360 }
-          ]
-        },
+        bankSelect: null, // 银行选择,
+        times: 3, // 次数
+        guildNameMap: config,
       },
       computed: {
         modeType () {
           return [
             { value: 'diamond', name: '钻石', bankScore: 3680, shadi: 208, stone: 272 },
-            { value: 'king', name: '王者', bankScore: 3680, shadi: 208, stone: 272 },
-            { value: 'gold', name: '黄金', bankScore: 3680, shadi: 208, stone: 272 }
+            { value: 'king', name: '王者', bankScore: 3680, shadi: 312, stone: 408 },
+            { value: 'gold', name: '黄金', bankScore: 1840, shadi: 104, stone: 136 }
           ]
         },
         modeTypeMap () {
@@ -240,6 +224,12 @@
           return `${target.value}(${target.name})`
         }
       },
+      created () {
+        this.bankSelect = config[this.activeMode].reduce((acc, cur) => {
+          acc[cur.prop] = []
+          return acc
+        }, {})
+      },
       methods: {
         computedScore (value, bankSelect, times, averageScore) {
            const targetScore = value.secondScore - value.firstScore // 分差
@@ -249,54 +239,52 @@
            return averageScore - value.secondScore - (targetScore - (isHad ? this.modeTypeMap[this.activeMode].bankScore : 0)) * times - this.modeTypeMap[this.activeMode].bankScore * haveTimes
         },
         handleChange (evt, item, value) {
-          // 判断下当前的value值是否存在于bankSelect中，如果存在就删除，不存在就添加
-          Object.entries(this.bankSelect).forEach(([key, val]) => {
+          Object.entries(this.bankSelect).forEach(([key, val]) => { // 判断下当前的value值是否存在于bankSelect中，如果存在就删除
             const target = val.find(v => v.value === value)
-            if (target) {
+            if (item.prop !== key && target) {
               target.evt.target.checked = false
               this.bankSelect[key] = this.bankSelect[key].filter(v => v.value !== value)
             }
           })
           const index = this.bankSelect[item.prop].findIndex(val => val.value === value)
           if (index > -1) {
+            this.bankSelect[item.prop][index].evt.target.checked = false
             this.bankSelect[item.prop].splice(index, 1)
           } else {
+            evt.target.checked = true
             this.bankSelect[item.prop].push({ value, evt})
           }
         },
-        calcScore (arr1, arr2, arr3, arr4, bankScore, times) {
-          const [firstArr1, secondArr1, hadBankTimes1, haveBankTimes1] = arr1 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
-          const [firstArr2, secondArr2, hadBankTimes2, haveBankTimes2] = arr2 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
-          const [firstArr3, secondArr3, hadBankTimes3, haveBankTimes3] = arr3 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
-          const [firstArr4, secondArr4, hadBankTimes4, haveBankTimes4] = arr4 // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
-          const finaScoreTotal1 = secondArr1 + (secondArr1 - firstArr1 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes1) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes1
-          const finaScoreTotal2 = secondArr2 + (secondArr2 - firstArr2 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes2) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes2
-          const finaScoreTotal3 = secondArr3 + (secondArr3 - firstArr3 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes3) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes3
-          const finaScoreTotal4 = secondArr4 + (secondArr4 - firstArr4 - this.modeTypeMap[this.activeMode].bankScore * hadBankTimes4) * times + this.modeTypeMap[this.activeMode].bankScore * haveBankTimes4
-          const totalScore = finaScoreTotal1 + finaScoreTotal2 + finaScoreTotal3 + finaScoreTotal4
-          const isAverage = totalScore % 4 === 0
+        calcScore (guildNameMap, bankScore, times) {
+          let count = 0 // 次数
+          const totalScore = Object.entries(guildNameMap).reduce((acc, cur) => {
+            const [key, val] = cur
+            // 第一场分数 第二场分数 当前银行是否占领，只有0和1 银行剩余占领的次数
+            const [firstArr, secondArr, hadBankTimes, haveBankTimes] = val
+            acc += secondArr + (secondArr - firstArr - bankScore * hadBankTimes) *times + bankScore * haveBankTimes
+            count++ // 一共多少个工会参与
+            return acc
+          }, 0)
+          const isAverage = totalScore % count === 0
           if (isAverage) {
-            return totalScore / 4
+            return totalScore / count
           }
           return false
         },
         handleCalc () {
-          const { guild1, guild2, guild3, guild4 } = this.bankSelect
-          const guildNameMap = this.guildNameMap[this.activeMode].reduce((acc, cur) => {
-            acc[cur.prop] = cur
+          const targetGuild = this.guildNameMap[this.activeMode] // 当前模式下的工会
+          const guildNameMap = targetGuild.reduce((acc, cur) => {
+            const temSelectedBankArr = this.bankSelect[cur.prop].map(val => val.value) // 银行占领分布
+            acc[cur.prop] = [cur.firstScore, cur.secondScore, temSelectedBankArr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => temSelectedBankArr.includes(idx + 1)).length]
             return acc
           }, {})
-          const guild1Arr = guild1.map(val => val.value)
-          const guild2Arr = guild2.map(val => val.value)
-          const guild3Arr = guild3.map(val => val.value)
-          const guild4Arr = guild4.map(val => val.value)
-          const parmas = [[ guildNameMap.guild1.firstScore, guildNameMap.guild1.secondScore, guild1Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild1Arr.includes(idx + 1)).length ],
-            [guildNameMap.guild2.firstScore, guildNameMap.guild2.secondScore, guild2Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild2Arr.includes(idx + 1)).length],
-            [guildNameMap.guild3.firstScore, guildNameMap.guild3.secondScore, guild3Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild3Arr.includes(idx + 1)).length],
-            [guildNameMap.guild4.firstScore, guildNameMap.guild4.secondScore, guild4Arr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => guild4Arr.includes(idx + 1)).length],
+          console.log(guildNameMap, this.bankSelect, 'guildNameMap')
+          const parmas = [
+            guildNameMap,
             this.modeTypeMap[this.activeMode].bankScore,
-            this.times]
-          const isAverage = this.calcScore( ...parmas )
+            this.times
+          ]
+          const isAverage = this.calcScore(...parmas)
           if (isAverage) {
             this.averageScore = isAverage
           } else {
