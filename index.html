@@ -143,7 +143,7 @@
     <h2>第五步</h2>
     <div class="bgc">
       <button style="background-color: cadetblue; color: #fff;" @click="handleCalc">计算</button>
-      <h3>平均分：{{ averageScore }}</h3>
+      <h3>总分: {{ totalScore }} 平均分：{{ averageScore }} </h3>
       <div v-if="averageScore">
         <div v-for="guildItem in guildNameMap[activeMode]" style="margin-bottom: 15px;">
           {{ guildItem.label }}：{{ computedScore(guildItem, bankSelect, times, averageScore) }}
@@ -153,12 +153,21 @@
     </div>
   </div>
   <script>
+
+    // 1. 计算所有系数的最大公约数
+    function gcd(a, b) {
+      return b === 0 ? a : gcd(b, a % b);
+    }
     const config = {
       diamond: [
-        { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
-        { label: 'B', prop: 'guild2', firstScore: '', secondScore: '' },
-        { label: 'C', prop: 'guild3', firstScore: '', secondScore: '' },
-        { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' }
+        { label: '兄弟盟', prop: 'guild1', firstScore: 441816, secondScore: 469832 },
+        { label: '巅峰', prop: 'guild2', firstScore: 427112, secondScore: 459528 },
+        // { label: '自嗨团', prop: 'guild3', firstScore: 369832, secondScore: 406280 },
+        // { label: '雪舞', prop: 'guild4', firstScore: 278184, secondScore: 318296 }
+        // { label: '傲世风华', prop: 'guild1', firstScore: 386104, secondScore: 415992 },
+        // { label: '锦衣夜行', prop: 'guild2', firstScore: 364216, secondScore: 394872 },
+        // { label: '养老中心', prop: 'guild3', firstScore: 378728, secondScore: 414312 },
+        // { label: '有钱有闲', prop: 'guild4', firstScore: 396744, secondScore: 437608 }
       ],
       king: [
         { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
@@ -178,10 +187,11 @@
     var targetVue = new Vue({
       el: '#app',
       data: {
+        totalScore: '',
         averageScore: '',
         activeMode: 'diamond', // 默认钻石
         bankSelect: null, // 银行选择,
-        times: 10, // 次数
+        times: 6, // 次数
         guildNameMap: config,
       },
       computed: {
@@ -264,11 +274,11 @@
             count++ // 一共多少个工会参与
             return acc
           }, 0)
-          const isAverage = totalScore % count === 0
-          if (isAverage) {
-            return totalScore / count
+          this.totalScore = totalScore
+          return {
+            totalScore: totalScore,
+            averageScore: totalScore / count
           }
-          return false
         },
         handleCalc () {
           const targetGuild = this.guildNameMap[this.activeMode] // 当前模式下的工会
@@ -277,24 +287,24 @@
             acc[cur.prop] = [cur.firstScore, cur.secondScore, temSelectedBankArr.includes(this.times + 1) ? 1 : 0, new Array(this.times).fill(0).filter((_, idx) => temSelectedBankArr.includes(idx + 1)).length]
             return acc
           }, {})
-          console.log(guildNameMap, this.bankSelect, 'guildNameMap')
           const parmas = [
             guildNameMap,
             this.modeTypeMap[this.activeMode].bankScore,
             this.times
           ]
-          const isAverage = this.calcScore(...parmas)
-          if (isAverage) {
-            this.averageScore = isAverage
-          } else {
-            this.averageScore = '不能平局，请重新调整分数'
+          const { totalScore, averageScore} = this.calcScore(...parmas)
+          console.log(totalScore, 'totalScore')
+          this.averageScore = averageScore
+        },
+        getGcd (...coefficients) {
+          let currentGcd = coefficients[0];
+          for (let i = 1; i < coefficients.length; i++) {
+            currentGcd = gcd(currentGcd, coefficients[i]);
+            if (currentGcd === 1) break; // gcd为1时可以直接终止
           }
+          return currentGcd
         },
         solveLinearDiophantine(C, ...coefficients) {
-          // 1. 计算所有系数的最大公约数
-          function gcd(a, b) {
-            return b === 0 ? a : gcd(b, a % b);
-          }
 
           let currentGcd = coefficients[0];
           for (let i = 1; i < coefficients.length; i++) {
@@ -311,21 +321,23 @@
           function findSolutions(target, remainingCoeffs, currentSolution, solutions) {
             if (remainingCoeffs.length === 0) {
               if (target === 0) {
-                solutions.push([...currentSolution]);
+                  solutions.push([...currentSolution]);
               }
-              return;
+                return;
             }
 
             const currentCoeff = remainingCoeffs[0];
             const newRemainingCoeffs = remainingCoeffs.slice(1);
 
-            // 计算当前变量的可能最大值
-            const maxValue = Math.floor(target / currentCoeff);
+            // 计算当前变量的可能范围（允许负数）
+            // 我们需要找到一个合理的范围，避免无限循环
+            // 这里简单设置为从 -target 到 target（可以根据需要调整）
+            const maxValue = Math.floor(Math.abs(target) / Math.abs(currentCoeff)) + 1;
 
-            for (let i = 0; i <= maxValue; i++) {
-              currentSolution.push(i);
-              findSolutions(target - i * currentCoeff, newRemainingCoeffs, currentSolution, solutions);
-              currentSolution.pop();
+            for (let i = -maxValue; i <= maxValue; i++) {
+                currentSolution.push(i);
+                findSolutions(target - i * currentCoeff, newRemainingCoeffs, currentSolution, solutions);
+                currentSolution.pop();
             }
           }
 
