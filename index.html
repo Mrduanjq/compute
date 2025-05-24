@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -143,8 +144,8 @@
     <h2>第五步</h2>
     <div class="bgc">
       <button style="background-color: cadetblue; color: #fff;" @click="handleCalc">计算</button>
-      <h3>总分: {{ totalScore }} 平均分：{{ averageScore }} </h3>
-      <div v-if="averageScore">
+      <h3>总分：{{ totalScore }} <br /> 平均分：{{ averageScore }}</h3>
+      <div>
         <div v-for="guildItem in guildNameMap[activeMode]" style="margin-bottom: 15px;">
           {{ guildItem.label }}：{{ computedScore(guildItem, bankSelect, times, averageScore) }}
           <div>(a=沙地, b=枯木/石头) {{ JSON.stringify(solveLinearDiophantine(Math.abs(computedScore(guildItem, bankSelect, times, averageScore)), modeTypeMap[activeMode].shadi, modeTypeMap[activeMode].stone)).slice(1, -1).replaceAll('[', '(').replaceAll(']', ')') }}</div>
@@ -153,21 +154,16 @@
     </div>
   </div>
   <script>
-
-    // 1. 计算所有系数的最大公约数
-    function gcd(a, b) {
-      return b === 0 ? a : gcd(b, a % b);
-    }
     const config = {
       diamond: [
-        { label: '兄弟盟', prop: 'guild1', firstScore: 441816, secondScore: 469832 },
-        { label: '巅峰', prop: 'guild2', firstScore: 427112, secondScore: 459528 },
-        // { label: '自嗨团', prop: 'guild3', firstScore: 369832, secondScore: 406280 },
-        // { label: '雪舞', prop: 'guild4', firstScore: 278184, secondScore: 318296 }
-        // { label: '傲世风华', prop: 'guild1', firstScore: 386104, secondScore: 415992 },
-        // { label: '锦衣夜行', prop: 'guild2', firstScore: 364216, secondScore: 394872 },
-        // { label: '养老中心', prop: 'guild3', firstScore: 378728, secondScore: 414312 },
-        // { label: '有钱有闲', prop: 'guild4', firstScore: 396744, secondScore: 437608 }
+        // { label: '巅峰', prop: 'guild1', firstScore: 555864, secondScore: 585448 },
+        // { label: '兄弟盟', prop: 'guild2', firstScore: 554792, secondScore: 585640 },
+        // { label: '自嗨团', prop: 'guild3', firstScore: 539384, secondScore: 569672 },
+        // { label: '雪舞', prop: 'guild4', firstScore: 491432, secondScore: 537704 }
+        { label: '有钱', prop: 'guild1', firstScore: 565624, secondScore: 595288 },
+        { label: '傲世', prop: 'guild2', firstScore: 550984, secondScore: 585800 },
+        { label: '养老', prop: 'guild3', firstScore: 550312, secondScore: 585624 },
+        { label: '锦衣', prop: 'guild4', firstScore: 543832, secondScore: 581032 }
       ],
       king: [
         { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
@@ -187,12 +183,12 @@
     var targetVue = new Vue({
       el: '#app',
       data: {
-        totalScore: '',
         averageScore: '',
+        totalScore: '',
         activeMode: 'diamond', // 默认钻石
         bankSelect: null, // 银行选择,
-        times: 6, // 次数
-        guildNameMap: config,
+        times: 2, // 次数
+        guildNameMap: Object.freeze(config),
       },
       computed: {
         modeType () {
@@ -274,7 +270,6 @@
             count++ // 一共多少个工会参与
             return acc
           }, 0)
-          this.totalScore = totalScore
           return {
             totalScore: totalScore,
             averageScore: totalScore / count
@@ -292,11 +287,16 @@
             this.modeTypeMap[this.activeMode].bankScore,
             this.times
           ]
-          const { totalScore, averageScore} = this.calcScore(...parmas)
-          console.log(totalScore, 'totalScore')
+          const { totalScore, averageScore } = this.calcScore(...parmas)
+          this.totalScore = totalScore
           this.averageScore = averageScore
         },
         getGcd (...coefficients) {
+          // 1. 计算所有系数的最大公约数
+          function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+          }
+
           let currentGcd = coefficients[0];
           for (let i = 1; i < coefficients.length; i++) {
             currentGcd = gcd(currentGcd, coefficients[i]);
@@ -305,24 +305,27 @@
           return currentGcd
         },
         solveLinearDiophantine(C, ...coefficients) {
+          // 1. 计算所有系数的最大公约数
+          function gcd(a, b) {
+            return b === 0 ? a : gcd(b, a % b);
+          }
 
           let currentGcd = coefficients[0];
           for (let i = 1; i < coefficients.length; i++) {
             currentGcd = gcd(currentGcd, coefficients[i]);
             if (currentGcd === 1) break; // gcd为1时可以直接终止
           }
-
           // 2. 检查是否有解
           if (C % currentGcd !== 0) {
             return ['无解']; // 无解
           }
 
-          // 3. 递归求解函数
+          // 3. 递归求解函数（允许负整数）
           function findSolutions(target, remainingCoeffs, currentSolution, solutions) {
             if (remainingCoeffs.length === 0) {
-              if (target === 0) {
-                  solutions.push([...currentSolution]);
-              }
+                if (target === 0) {
+                    solutions.push([...currentSolution]);
+                }
                 return;
             }
 
