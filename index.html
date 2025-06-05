@@ -110,7 +110,7 @@
     <h2>第二步</h2>
     <div class="bgc">
       <label for="">剩余轮数</label>
-      <select v-model="times" name="" id="times">
+      <select v-model="times" name="">
         <template v-for="item in haveTimes">
           <option v-if="!item.hide" :value="item.value">{{ item.value }} ({{ item.name }})</option>
         </template>
@@ -141,13 +141,25 @@
       </div>
     </div>
     <h2>第五步</h2>
-    <div class="bgc">
+    <div class="bgc" style="margin-bottom: 15px;">
       <button style="background-color: cadetblue; color: #fff;" :disabled="loading" @click="handleCalc">计算</button>
       <h3>总分: {{ totalScore }} 平均分：{{ averageScore }} </h3>
+      <div>未占领的空地数量: <input v-model.number="emptyMap[activeMode]" type="text" style="width: 40px"></div>
+      <h1 style="font-size: 16px;"><em style="font-size: 22px;color: red;margin-right: 5px;">正数</em>表示当前公会<i style="color: red;">要</i>占领,<em style="font-size: 22px;color: red;margin-right: 5px;">负数</em>表示 当前公会<i style="color: red;">需要被</i>占领</h1>
       <div v-if="!loading">
         <div v-for="val in result" style="margin-bottom: 15px;" v-html="val"></div>
       </div>
       <div v-else>计算中,请稍后....</div>
+    </div>
+    <div v-for="item in Object.keys(sortMap)" class="bgc" style="margin-bottom: 15px;">
+      <div>
+        <h3>新增{{ item }}次空地可以平局</h3>
+        <h4 style="font-size: 16px;"><em style="font-size: 22px;color: red;margin-right: 5px;">正数</em>表示当前公会<i style="color: red;">要</i>占领,<em style="font-size: 22px;color: red;margin-right: 5px;">负数</em>表示 当前公会<i style="color: red;">需要被</i>占领</h4>
+        <div v-for="val in sortMap[item]" style="margin-bottom: 15px;">
+          <h5>总分: {{ val.totalScore }} 平均分：{{ val.averageScore }} </h5>
+          <div v-html="val.res"></div>
+        </div>
+      </div>
     </div>
   </div>
   <script>
@@ -156,12 +168,20 @@
     function gcd(a, b) {
       return b === 0 ? a : gcd(b, a % b);
     }
+    function extendedGcd(a, b) {
+      if (b === 0) return [1, 0, a];
+      const [x, y, d] = extendedGcd(b, a % b);
+      return [y, x - Math.floor(a / b) * y, d];
+    }
     const config = {
       diamond: [
-        { label: '傲世风华', prop: 'guild1', firstScore: 386104, secondScore: 415992 },
-        { label: '锦衣夜行', prop: 'guild2', firstScore: 364216, secondScore: 394872 },
-        { label: '养老中心', prop: 'guild3', firstScore: 378728, secondScore: 414312 },
-        { label: '有钱有闲', prop: 'guild4', firstScore: 396744, secondScore: 437608 }
+        // { label: '龙域', prop: 'guild1', firstScore: 400248, secondScore: 434072 },
+        // { label: '半城', prop: 'guild2', firstScore: 381128, secondScore: 414184 },
+        // { label: '完美', prop: 'guild3', firstScore: 378120, secondScore: 414448 },
+        // { label: '傲世', prop: 'guild4', firstScore: 374280, secondScore: 410856 }
+        { label: '天涯', prop: 'guild2', firstScore: 419936, secondScore: 468160 },
+        { label: '再战', prop: 'guild3', firstScore: 408192, secondScore: 452240 },
+        // { label: '锦衣', prop: 'guild4', firstScore: 201252, secondScore: 243332 }
       ],
       king: [
         { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
@@ -170,12 +190,12 @@
         { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' }
       ],
       gold: [
-        { label: 'A', prop: 'guild1', firstScore: '', secondScore: '' },
-        { label: 'B', prop: 'guild2', firstScore: '', secondScore: '' },
-        { label: 'C', prop: 'guild3', firstScore: '', secondScore: '' },
-        { label: 'D', prop: 'guild4', firstScore: '', secondScore: '' },
-        { label: 'E', prop: 'guild5', firstScore: '', secondScore: '' },
-        { label: 'F', prop: 'guild6', firstScore: '', secondScore: '' }
+        { label: '双桨', prop: 'guild1', firstScore: 231904, secondScore: 243688 },
+        { label: '随缘', prop: 'guild2', firstScore: 212536, secondScore: 227668 },
+        { label: '董哥', prop: 'guild3', firstScore: 187636, secondScore: 205168 },
+        { label: '战魂', prop: 'guild4', firstScore: 192568, secondScore: 210136 },
+        { label: '长空', prop: 'guild5', firstScore: 181588, secondScore: 203392 },
+        { label: '炎盟', prop: 'guild6', firstScore: 179128, secondScore: 198052 }
       ]
     }
     var targetVue = new Vue({
@@ -185,17 +205,23 @@
         totalScore: '',
         averageScore: '',
         result: [], // 结果
+        allResult: [], // 所有结果
         activeMode: 'diamond', // 默认钻石
         bankSelect: null, // 银行选择,
-        times: 6, // 次数
+        times: 7, // 次数
         guildNameMap: config,
+        emptyMap: { // 默认空地数量
+          diamond: 4,
+          king: 4,
+          gold: 6
+        }
       },
       computed: {
         modeType () {
           return [
             { value: 'diamond', name: '钻石', bankScore: 3680, shadi: 208, stone: 272 },
             { value: 'king', name: '王者', bankScore: 5520, shadi: 312, stone: 408 },
-            { value: 'gold', name: '黄金', bankScore: 1840, shadi: 104, stone: 136 }
+            { value: 'gold', name: '黄金', bankScore: 2760, shadi: 156, stone: 204 }
           ]
         },
         modeTypeMap () {
@@ -203,6 +229,17 @@
             acc[cur.value] = cur
             return acc
           }, {})
+        },
+        sortMap () {
+          const sortMap = {}
+          for (let i = 0; i < this.allResult.length; i++) {
+            const item = this.allResult[i]
+            if (!sortMap[item.i]) {
+              sortMap[item.i] = []
+            }
+            sortMap[item.i].push(item)
+          }
+          return sortMap
         },
         haveTimes () {
           return [
@@ -234,6 +271,15 @@
           acc[cur.prop] = []
           return acc
         }, {})
+      },
+      watch: {
+        activeMode (val) {
+          this.allResult = [] // 清空
+          this.bankSelect = config[val].reduce((acc, cur) => {
+            acc[cur.prop] = []
+            return acc
+          }, {})
+        }
       },
       methods: {
         computedScore (value, bankSelect, times, averageScore) {
@@ -273,10 +319,12 @@
           this.totalScore = totalScore
           return {
             totalScore: totalScore,
+            count,
             averageScore: (totalScore / count)
           }
         },
         handleCalc () {
+          this.allResult = [] // 清空
           const targetGuild = this.guildNameMap[this.activeMode] // 当前模式下的工会
           const guildNameMap = targetGuild.reduce((acc, cur) => {
             const temSelectedBankArr = this.bankSelect[cur.prop].map(val => val.value) // 银行占领分布
@@ -288,18 +336,38 @@
             this.modeTypeMap[this.activeMode].bankScore,
             this.times
           ]
-          const { totalScore, averageScore} = this.calcScore(...parmas)
+          const { totalScore, count, averageScore} = this.calcScore(...parmas)
           this.averageScore = averageScore
-          this.getResult()
+          this.getResult(count)
         },
-        getResult () {
+        getResult (count = 4) {
           this.loading = true
           console.time('getResult')
           try {
-            this.result = this.guildNameMap[this.activeMode].reduce((acc, guildItem) => {
+            this.result = this.guildNameMap[this.activeMode].reduce((acc, guildItem, curIndex) => {
               const { shadi, stone } = this.modeTypeMap[this.activeMode]
               const averageScore = this.computedScore(guildItem, this.bankSelect, this.times, this.averageScore)
               const finaItemRes = this.solveLinearDiophantine(Math.abs(averageScore), shadi, stone)
+
+              for (let i = 1; i <= this.emptyMap[this.activeMode] * this.times; i++) {
+                const addScore = this.computedEmptyScore(guildItem, this.bankSelect, this.times, this.averageScore+(shadi / count)*i, i, shadi, curIndex === 0)
+                const res = this.solveLinearDiophantine(Math.abs(addScore), shadi, stone)
+                console.log(res, '结果')
+                if (res.length === 1 && res[0] === '无解') {
+                } else {
+                  this.allResult.push({
+                    label: guildItem.label,
+                    totalScore: this.totalScore+shadi*i,
+                    averageScore: (this.totalScore+shadi*i) / count,
+                    i,
+                    emptyCount: '新增'+ i +'次沙地可以平局',
+                    res: `
+                        ${guildItem.label}: ${addScore} ${curIndex === 0 ? '<div style="color: red;font-weight: 700;">' + guildItem.label + '需要占领'+ i +'次沙地</div>' : '' }
+                        <div>(a=沙地, b=枯木/石头) ${JSON.stringify(res).slice(1, -1).replaceAll('[', '(').replaceAll(']', ')')}</div>
+                        `
+                  })
+                }
+              }
               acc.push(`
                         ${guildItem.label}: ${averageScore}
                         <div>(a=沙地, b=枯木/石头) ${JSON.stringify(finaItemRes).slice(1, -1).replaceAll('[', '(').replaceAll(']', ')')}</div>
@@ -311,56 +379,58 @@
             this.loading = false
           }
         },
-        getGcd (...coefficients) {
-          let currentGcd = coefficients[0];
-          for (let i = 1; i < coefficients.length; i++) {
-            currentGcd = gcd(currentGcd, coefficients[i]);
-            if (currentGcd === 1) break; // gcd为1时可以直接终止
+        computedEmptyScore (guildItem, bankSelect, times, averageScore, emptyCount, shadi, isAddShadi) {
+          averageScore -= guildItem.secondScore // 先减去当前的分数
+          const targetArr = bankSelect[guildItem.prop].map(val => val.value) // 银行占领分布
+          const isHad = targetArr.includes(times + 1) // 当前公会是否占领
+          const haveTimes = new Array(times).fill(0).filter((_, idx) => targetArr.includes(idx + 1)).length
+          for (let i = times; i > 0; i--) {
+            if (i <= emptyCount && isAddShadi) { // 新空地入场,需要减去空地分数
+              averageScore -= (guildItem.secondScore+shadi - guildItem.firstScore - (this.modeTypeMap[this.activeMode].bankScore * (isHad ? 1 : 0)))
+            } else {
+              averageScore -= (guildItem.secondScore - guildItem.firstScore - (this.modeTypeMap[this.activeMode].bankScore * (isHad ? 1 : 0)))
+            }
           }
-          return currentGcd
+          averageScore -= haveTimes * this.modeTypeMap[this.activeMode].bankScore
+          return averageScore
         },
-        solveLinearDiophantine(C, ...coefficients) {
-
-          let currentGcd = coefficients[0];
-          for (let i = 1; i < coefficients.length; i++) {
-            currentGcd = gcd(currentGcd, coefficients[i]);
-            if (currentGcd === 1) break; // gcd为1时可以直接终止
+        solveLinearDiophantine (C, ...coefficients) {
+          // 1. 检查是否为二元方程
+          if (coefficients.length !== 2) {
+              return { error: '仅支持二元方程' };
           }
+
+          const [a, b] = coefficients;
+          const d = gcd(a, b);
 
           // 2. 检查是否有解
-          if (C % currentGcd !== 0) {
-            return ['无解']; // 无解
+          if (C % d !== 0) {
+              return ['无解'];
           }
 
-          // 3. 递归求解函数
-          function findSolutions(target, remainingCoeffs, currentSolution, solutions) {
-            if (remainingCoeffs.length === 0) {
-              if (target === 0) {
-                  solutions.push([...currentSolution]);
-              }
-                return;
-            }
+          // 3. 使用扩展欧几里得算法
+          const [x, y] = extendedGcd(a, b);
+          const k = C / d;
+          let x0 = x * k;
+          let y0 = y * k;
 
-            const currentCoeff = remainingCoeffs[0];
-            const newRemainingCoeffs = remainingCoeffs.slice(1);
+          // 4. 通解参数
+          const m = b / d;
+          const n = a / d;
 
-            // 计算当前变量的可能范围（允许负数）
-            // 我们需要找到一个合理的范围，避免无限循环
-            // 这里简单设置为从 -target 到 target（可以根据需要调整）
-            const maxValue = Math.floor(Math.abs(target) / Math.abs(currentCoeff)) + 1;
+          // 5. 计算t的范围以获得所有非负解（可根据需要调整）
+          // 解的形式：x = x0 + m*t, y = y0 - n*t
+          const tMin = Math.ceil((-x0) / m);
+          const tMax = Math.floor(y0 / n);
 
-            for (let i = -maxValue; i <= maxValue; i++) {
-                currentSolution.push(i);
-                findSolutions(target - i * currentCoeff, newRemainingCoeffs, currentSolution, solutions);
-                currentSolution.pop();
-            }
+          // 6. 生成所有整数解
+          const solutions = [];
+          for (let t = tMin - 1; t <= tMax + 1; t++) { // 扩大范围以确保覆盖
+              const xSol = x0 + m * t;
+              const ySol = y0 - n * t;
+              solutions.push([xSol, ySol]);
           }
-
-          // 4. 寻找所有解
-          const allSolutions = [];
-          findSolutions(C, coefficients, [], allSolutions);
-
-          return allSolutions;
+          return solutions;
         }
       }
     })
